@@ -2,7 +2,7 @@ name: AppImage
 
 on:
   push:
-    branches: [master]
+    branches: [master, issue3064]
     tags:
   release:
     types: ['created']
@@ -19,7 +19,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-18.04]
-        sqlcipher: ["0", "1"]
+        sqlcipher: ["0"]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -36,6 +36,8 @@ jobs:
            ./configure
            make
            sudo make install
+           sudo ldconfig
+           sudo ldconfig -v
     - name: Configure CMake
       run: |
            mkdir appbuild
@@ -46,13 +48,16 @@ jobs:
       run: |
            cd appbuild
            make install
+           ldd sqlitebrowser
     - name: Build AppImage
       run: |
-           git rev-list master --count
            wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
            chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-           export VERSION=$(printf "master-`git rev-list HEAD --count`-` git -C . rev-parse --short HEAD`")
-           ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage
+           export VERSION=$(printf "master-123")
+           echo $LD_LIBRARY_PATH
+           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+           ldd appdir/usr/bin/sqlitebrowser
+           ./linuxdeployqt-continuous-x86_64.AppImage appdir/usr/share/applications/*.desktop -appimage -bundle-non-qt-libs
     - name: Rename AppImage
       if: matrix.sqlcipher == '1'
       run: |
